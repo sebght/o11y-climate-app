@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Qualité de l'Air Mondial 🌍</title>
+    <title>Dashboard Qualité de l'Air en France 🇫🇷</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -14,22 +14,29 @@
 <body>
     <div class="container">
         <header>
-            <h1>🌍 Dashboard Qualité de l'Air Mondial</h1>
+            <h1>🇫🇷 Dashboard Qualité de l'Air en France</h1>
             <p class="subtitle">Surveillance en temps réel de la qualité de l'air et recommandations santé</p>
         </header>
 
         <div class="search-section">
             <div class="search-box">
-                <input type="text" id="cityInput" placeholder="Entrez une ville (ex: Paris, London, Tokyo)">
+                <input type="text" id="cityInput" placeholder="Entrez une ville française (ex: Paris, Lyon, Marseille)">
                 <button id="searchBtn">🔍 Rechercher</button>
             </div>
             <div class="quick-cities">
-                <span>Villes populaires:</span>
+                <span>Villes françaises:</span>
                 <button class="city-btn" data-city="Paris" data-country="FR">Paris</button>
-                <button class="city-btn" data-city="London" data-country="GB">Londres</button>
-                <button class="city-btn" data-city="Tokyo" data-country="JP">Tokyo</button>
-                <button class="city-btn" data-city="New York" data-country="US">New York</button>
-                <button class="city-btn" data-city="Mumbai" data-country="IN">Mumbai</button>
+                <button class="city-btn" data-city="Lyon" data-country="FR">Lyon</button>
+                <button class="city-btn" data-city="Marseille" data-country="FR">Marseille</button>
+                <button class="city-btn" data-city="Toulouse" data-country="FR">Toulouse</button>
+                <button class="city-btn" data-city="Nice" data-country="FR">Nice</button>
+                <button class="city-btn" data-city="Lille" data-country="FR">Lille</button>
+                <button class="city-btn" data-city="Bordeaux" data-country="FR">Bordeaux</button>
+                <button class="city-btn" data-city="Nantes" data-country="FR">Nantes</button>
+                <button class="city-btn" data-city="Strasbourg" data-country="FR">Strasbourg</button>
+                <button class="city-btn" data-city="Montpellier" data-country="FR">Montpellier</button>
+                <button class="city-btn" data-city="Reims" data-country="FR">Reims</button>
+                <button class="city-btn" data-city="Rouen" data-country="FR">Rouen</button>
             </div>
         </div>
 
@@ -44,7 +51,23 @@
             <div class="data-panel">
                 <!-- Air Quality -->
                 <div class="card" id="airQualityCard">
-                    <h3>💨 Qualité de l'Air</h3>
+                    <h3>
+                        💨 Qualité de l'Air
+                        <span class="tooltip">
+                            <span class="aqi-info-icon">?</span>
+                            <span class="tooltiptext">
+                                <strong>Qu'est-ce que l'AQI ?</strong><br><br>
+                                L'<strong>Indice de Qualité de l'Air (AQI)</strong> mesure la pollution atmosphérique.<br><br>
+                                <strong>Échelle :</strong><br>
+                                • 0-50 : Bon<br>
+                                • 50-100 : Moyen<br>
+                                • 100-150 : Dégradé<br>
+                                • 150-200 : Mauvais<br>
+                                • 200-300 : Très mauvais<br>
+                                • 300+ : Extrême
+                            </span>
+                        </span>
+                    </h3>
                     <div class="loading">Sélectionnez une ville...</div>
                     <div class="air-quality-content" style="display: none;">
                         <div class="aqi-badge">

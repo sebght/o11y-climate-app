@@ -12,6 +12,7 @@ services:
     environment:
       - SPRING_APPLICATION_NAME=air-quality-service
       - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus
+      - OPENAQ_API_KEY=${OPENAQ_API_KEY}
     networks:
       - app-network
     healthcheck:
@@ -105,7 +106,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./observability/prometheus:/etc/prometheus
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'

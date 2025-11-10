@@ -2,6 +2,9 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+rule_files:
+  - rules/*.yaml
+
 scrape_configs:
   # Service Spring Boot - Air Quality
   - job_name: 'air-quality-service'

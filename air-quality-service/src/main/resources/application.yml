@@ -5,6 +5,11 @@ spring:
   application:
     name: air-quality-service
 
+# Configuration OpenAQ API v3
+openaq:
+  api:
+    key: ${OPENAQ_API_KEY:}
+
 management:
   endpoints:
     web:

@@ -13,6 +13,48 @@ const SERVICES = {
 let map;
 let currentMarker;
 let selectedCity = null;
+let cityMarkers = [];
+
+// Villes françaises disponibles avec leurs coordonnées
+const FRENCH_CITIES = [
+    // Grandes villes
+    { name: 'Paris', lat: 48.8566, lng: 2.3522 },
+    { name: 'Lyon', lat: 45.7640, lng: 4.8357 },
+    { name: 'Marseille', lat: 43.2965, lng: 5.3698 },
+    { name: 'Toulouse', lat: 43.6047, lng: 1.4442 },
+    { name: 'Nice', lat: 43.7102, lng: 7.2620 },
+    { name: 'Nantes', lat: 47.2184, lng: -1.5536 },
+    { name: 'Strasbourg', lat: 48.5734, lng: 7.7521 },
+    { name: 'Bordeaux', lat: 44.8378, lng: -0.5792 },
+    { name: 'Lille', lat: 50.6292, lng: 3.0573 },
+    { name: 'Rennes', lat: 48.1173, lng: -1.6778 },
+    { name: 'Montpellier', lat: 43.6108, lng: 3.8767 },
+    { name: 'Grenoble', lat: 45.1885, lng: 5.7245 },
+    // Villes moyennes
+    { name: 'Reims', lat: 49.2583, lng: 4.0317 },
+    { name: 'Le Havre', lat: 49.4944, lng: 0.1079 },
+    { name: 'Saint-Étienne', lat: 45.4397, lng: 4.3872 },
+    { name: 'Toulon', lat: 43.1242, lng: 5.9280 },
+    { name: 'Angers', lat: 47.4784, lng: -0.5632 },
+    { name: 'Dijon', lat: 47.3220, lng: 5.0415 },
+    { name: 'Brest', lat: 48.3905, lng: -4.4861 },
+    { name: 'Le Mans', lat: 48.0077, lng: 0.1984 },
+    { name: 'Clermont-Ferrand', lat: 45.7772, lng: 3.0870 },
+    { name: 'Amiens', lat: 49.8941, lng: 2.2958 },
+    { name: 'Aix-en-Provence', lat: 43.5297, lng: 5.4474 },
+    { name: 'Limoges', lat: 45.8336, lng: 1.2611 },
+    { name: 'Tours', lat: 47.3941, lng: 0.6848 },
+    { name: 'Orléans', lat: 47.9029, lng: 1.9093 },
+    { name: 'Metz', lat: 49.1193, lng: 6.1757 },
+    { name: 'Besançon', lat: 47.2380, lng: 6.0243 },
+    { name: 'Perpignan', lat: 42.6886, lng: 2.8948 },
+    { name: 'Caen', lat: 49.1829, lng: -0.3707 },
+    { name: 'Rouen', lat: 49.4432, lng: 1.0993 },
+    { name: 'Nancy', lat: 48.6921, lng: 6.1844 },
+    { name: 'Mulhouse', lat: 47.7508, lng: 7.3359 },
+    { name: 'Pau', lat: 43.2951, lng: -0.3708 },
+    { name: 'Avignon', lat: 43.9493, lng: 4.8055 }
+];
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,18 +66,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Initialisation de la carte Leaflet
 function initMap() {
-    map = L.map('map').setView([48.8566, 2.3522], 5); // Paris par défaut
+    // Centrer sur la France métropolitaine
+    map = L.map('map').setView([46.603354, 1.888334], 6);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 18
     }).addTo(map);
 
-    // Événement de clic sur la carte
-    map.on('click', async (e) => {
-        const { lat, lng } = e.latlng;
-        await fetchDataByCoordinates(lat, lng);
+    // Ajouter des marqueurs pour toutes les villes françaises disponibles
+    FRENCH_CITIES.forEach(city => {
+        const marker = L.marker([city.lat, city.lng])
+            .addTo(map)
+            .bindPopup(`<b>${city.name}</b><br><small>Cliquez pour voir les données</small>`);
+
+        // Au clic sur le marqueur, charger les données de la ville
+        marker.on('click', () => {
+            document.getElementById('cityInput').value = city.name;
+            fetchDataByCity(city.name, 'FR');
+        });
+
+        cityMarkers.push(marker);
     });
+
+    // Événement de clic sur la carte (désactivé pour éviter la confusion)
+    // Les utilisateurs doivent cliquer sur les marqueurs ou utiliser la recherche
 }
 
 // Configuration des écouteurs d'événements
@@ -171,8 +226,29 @@ function displayAirQuality(data) {
         return;
     }
 
+    // Mapping des noms de paramètres vers des noms lisibles
+    const parameterNames = {
+        'pm25': 'PM2.5',
+        'pm10': 'PM10',
+        'o3': 'Ozone (O₃)',
+        'no2': 'Dioxyde d\'azote (NO₂)',
+        'so2': 'Dioxyde de soufre (SO₂)',
+        'co': 'Monoxyde de carbone (CO)',
+        'bc': 'Carbone noir (BC)'
+    };
+
+    // Filtrer les mesures avec des paramètres connus (pas "unknown")
+    const validMeasurements = data.filter(item =>
+        item.parameter &&
+        item.parameter.toLowerCase() !== 'unknown' &&
+        item.value > 0
+    );
+
     // Calculer l'AQI moyen
-    const avgAqi = Math.round(data.reduce((sum, item) => sum + (item.aqi || 0), 0) / data.length);
+    const avgAqi = validMeasurements.length > 0
+        ? Math.round(validMeasurements.reduce((sum, item) => sum + (item.aqi || 0), 0) / validMeasurements.length)
+        : Math.round(data.reduce((sum, item) => sum + (item.aqi || 0), 0) / data.length);
+
     const qualityLevel = data[0].qualityLevel || 'Unknown';
 
     // Mettre à jour le badge AQI
@@ -187,14 +263,22 @@ function displayAirQuality(data) {
     document.getElementById('qualityLevel').textContent = qualityLevel;
     document.getElementById('qualityLevel').className = 'quality-level ' + getAqiClass(avgAqi);
 
-    // Mesures
+    // Mesures - afficher uniquement les mesures valides
     const measurementsDiv = document.getElementById('measurements');
-    measurementsDiv.innerHTML = data.slice(0, 5).map(item => `
-        <div class="measurement-item">
-            <span><strong>${item.parameter.toUpperCase()}</strong></span>
-            <span>${item.value.toFixed(2)} ${item.unit}</span>
-        </div>
-    `).join('');
+    if (validMeasurements.length > 0) {
+        measurementsDiv.innerHTML = validMeasurements.slice(0, 5).map(item => {
+            const paramKey = item.parameter.toLowerCase();
+            const displayName = parameterNames[paramKey] || item.parameter.toUpperCase();
+            return `
+                <div class="measurement-item">
+                    <span><strong>${displayName}</strong></span>
+                    <span>${item.value.toFixed(2)} ${item.unit}</span>
+                </div>
+            `;
+        }).join('');
+    } else {
+        measurementsDiv.innerHTML = '<p style="font-size: 0.9em; color: #666;">Aucune mesure détaillée disponible</p>';
+    }
 }
 
 // Affichage des données - Météo
@@ -292,12 +376,23 @@ function displayHealthRecommendations(data) {
 
 // Mise à jour de la carte
 function updateMapLocation(lat, lng, name) {
+    // Supprimer le marqueur actif précédent s'il existe
     if (currentMarker) {
         map.removeLayer(currentMarker);
     }
 
-    currentMarker = L.marker([lat, lng]).addTo(map);
-    currentMarker.bindPopup(`<b>${name}</b>`).openPopup();
+    // Créer un marqueur rouge pour la ville sélectionnée
+    const redIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    currentMarker = L.marker([lat, lng], { icon: redIcon }).addTo(map);
+    currentMarker.bindPopup(`<b>${name}</b><br><small>Ville sélectionnée</small>`).openPopup();
     map.setView([lat, lng], 10);
 }
 

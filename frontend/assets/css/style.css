@@ -325,13 +325,89 @@ footer {
     background: #28a745;
 }
 
-/* AQI Color Coding */
-.aqi-good { background: linear-gradient(135deg, #00e400 0%, #00b300 100%); }
-.aqi-moderate { background: linear-gradient(135deg, #ffff00 0%, #e6e600 100%); }
-.aqi-unhealthy-sensitive { background: linear-gradient(135deg, #ff7e00 0%, #e67300 100%); }
-.aqi-unhealthy { background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%); }
-.aqi-very-unhealthy { background: linear-gradient(135deg, #8f3f97 0%, #732d7a 100%); }
-.aqi-hazardous { background: linear-gradient(135deg, #7e0023 0%, #5c001a 100%); }
+/* AQI Color Coding - Based on international standards */
+.aqi-good {
+    background: linear-gradient(135deg, #50f0e6 0%, #50ccaa 100%);
+    color: white;
+}
+.aqi-moderate {
+    background: linear-gradient(135deg, #f0e641 0%, #e6d000 100%);
+    color: #333;
+}
+.aqi-unhealthy-sensitive {
+    background: linear-gradient(135deg, #ff8c42 0%, #ff7315 100%);
+    color: white;
+}
+.aqi-unhealthy {
+    background: linear-gradient(135deg, #ff5050 0%, #e63946 100%);
+    color: white;
+}
+.aqi-very-unhealthy {
+    background: linear-gradient(135deg, #c77dff 0%, #9d4edd 100%);
+    color: white;
+}
+.aqi-hazardous {
+    background: linear-gradient(135deg, #8b0000 0%, #590000 100%);
+    color: white;
+}
+
+/* Tooltip styles for AQI info */
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 280px;
+    background-color: #333;
+    color: #fff;
+    text-align: left;
+    border-radius: 8px;
+    padding: 15px;
+    position: absolute;
+    z-index: 1000;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -140px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.85em;
+    line-height: 1.5;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+.aqi-info-icon {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    background: #667eea;
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 18px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 5px;
+    cursor: help;
+}
 
 /* Alert Level Colors */
 .alert-low { background: #d4edda; color: #155724; }

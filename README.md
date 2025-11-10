@@ -41,7 +41,7 @@ Cette application est composée de **3 microservices** et d'un **front-end** qui
 ### Services
 
 1. **🌬️ Air Quality Service (Spring Boot)** - Port 8080
-   - Récupère les données de qualité de l'air via l'API OpenAQ
+   - Récupère les données de qualité de l'air via l'API OpenAQ v3
    - Calcule l'AQI (Air Quality Index)
    - Expose des métriques Prometheus via Micrometer
 
@@ -70,7 +70,8 @@ Cette application est composée de **3 microservices** et d'un **front-end** qui
 
 - Docker ou Podman
 - Docker Compose
-- (Optionnel) Clé API OpenWeatherMap gratuite : https://openweathermap.org/api
+- **Clé API OpenAQ v3** (obligatoire) : https://docs.openaq.org/using-the-api/api-key
+- (Optionnel) Clé API OpenWeatherMap : https://openweathermap.org/api
 
 ### Configuration
 
@@ -80,15 +81,21 @@ Cette application est composée de **3 microservices** et d'un **front-end** qui
 cp .env.example .env
 ```
 
-2. **Configurer la clé API OpenWeatherMap** (optionnel)
+2. **Configurer les clés API**
 
-Éditez le fichier `.env` et ajoutez votre clé API :
+Éditez le fichier `.env` et ajoutez vos clés API :
 
 ```env
-OPENWEATHER_API_KEY=votre_cle_api_ici
+# OpenAQ API Key (OBLIGATOIRE - l'API v2 est dépréciée depuis janvier 2025)
+OPENAQ_API_KEY=votre_cle_openaq_v3_ici
+
+# OpenWeatherMap API Key (optionnel)
+OPENWEATHER_API_KEY=votre_cle_openweather_ici
 ```
 
-> ℹ️ **Note**: Si vous n'avez pas de clé API, l'application fonctionnera en mode démo avec des données limitées.
+> ⚠️ **Important**: L'API OpenAQ v2 a été retirée le 31 janvier 2025. L'application utilise maintenant l'API v3 qui nécessite une clé API gratuite.
+
+> ℹ️ **Note**: Si vous n'avez pas de clé OpenWeatherMap, le service météo fonctionnera avec des données limitées.
 
 ### Démarrage avec Docker Compose
 
