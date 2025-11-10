@@ -9,3 +9,17 @@ datasources:
     editable: true
     jsonData:
       timeInterval: "15s"
+
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: true
+    jsonData:
+      httpMethod: GET
+      tracesToLogsV2:
+        datasourceUid: 'Prometheus'
+      tracesToMetrics:
+        datasourceUid: 'Prometheus'
+      serviceMap:
+        datasourceUid: 'Prometheus'

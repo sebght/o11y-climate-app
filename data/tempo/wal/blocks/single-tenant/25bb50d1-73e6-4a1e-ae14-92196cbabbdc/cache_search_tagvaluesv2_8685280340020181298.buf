@@ -1,0 +1,15 @@
+
+ 
+stringGET /metrics http send
+
+stringGET /metrics
+
+stringGET /health http send
+
+stringGET /health
+3
+string)GET /api/health/recommendations http send
+)
+stringGET /api/health/recommendations
+
+stringGET
