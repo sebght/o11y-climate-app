@@ -1,0 +1,45 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Service Spring Boot - Air Quality
+  - job_name: 'air-quality-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['air-quality-service:8080']
+        labels:
+          service: 'air-quality'
+          environment: 'formation'
+
+  # Service Node.js - Weather
+  - job_name: 'weather-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['weather-service:8081']
+        labels:
+          service: 'weather'
+          environment: 'formation'
+
+  # Service FastAPI - Health
+  - job_name: 'health-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['health-service:8082']
+        labels:
+          service: 'health'
+          environment: 'formation'
+
+  # Nginx Frontend
+  - job_name: 'nginx'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+        labels:
+          service: 'nginx'
+          environment: 'formation'
+
+  # Prometheus lui-même
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

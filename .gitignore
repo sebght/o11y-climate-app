@@ -1,0 +1,28 @@
+# Environment variables
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+target/
+node_modules/
+__pycache__/
+*.pyc
+*.class
+*.jar
+
+# Logs
+*.log
+
+# Claude
+.claude/
+
+# Docker
+docker-compose.override.yml

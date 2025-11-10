@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Qualité de l'Air Mondial 🌍</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 Dashboard Qualité de l'Air Mondial</h1>
+            <p class="subtitle">Surveillance en temps réel de la qualité de l'air et recommandations santé</p>
+        </header>
+
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="cityInput" placeholder="Entrez une ville (ex: Paris, London, Tokyo)">
+                <button id="searchBtn">🔍 Rechercher</button>
+            </div>
+            <div class="quick-cities">
+                <span>Villes populaires:</span>
+                <button class="city-btn" data-city="Paris" data-country="FR">Paris</button>
+                <button class="city-btn" data-city="London" data-country="GB">Londres</button>
+                <button class="city-btn" data-city="Tokyo" data-country="JP">Tokyo</button>
+                <button class="city-btn" data-city="New York" data-country="US">New York</button>
+                <button class="city-btn" data-city="Mumbai" data-country="IN">Mumbai</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Map Section -->
+            <div class="map-section">
+                <h2>🗺️ Carte Interactive</h2>
+                <div id="map"></div>
+            </div>
+
+            <!-- Data Panel -->
+            <div class="data-panel">
+                <!-- Air Quality -->
+                <div class="card" id="airQualityCard">
+                    <h3>💨 Qualité de l'Air</h3>
+                    <div class="loading">Sélectionnez une ville...</div>
+                    <div class="air-quality-content" style="display: none;">
+                        <div class="aqi-badge">
+                            <span class="aqi-value" id="aqiValue">--</span>
+                            <span class="aqi-label">AQI</span>
+                        </div>
+                        <div class="quality-level" id="qualityLevel">--</div>
+                        <div class="measurements" id="measurements"></div>
+                    </div>
+                </div>
+
+                <!-- Weather -->
+                <div class="card" id="weatherCard">
+                    <h3>🌤️ Météo</h3>
+                    <div class="loading">Sélectionnez une ville...</div>
+                    <div class="weather-content" style="display: none;">
+                        <div class="weather-main">
+                            <div class="temperature" id="temperature">--°C</div>
+                            <div class="weather-desc" id="weatherDesc">--</div>
+                        </div>
+                        <div class="weather-details" id="weatherDetails"></div>
+                    </div>
+                </div>
+
+                <!-- Health Recommendations -->
+                <div class="card" id="healthCard">
+                    <h3>🏥 Recommandations Santé</h3>
+                    <div class="loading">Sélectionnez une ville...</div>
+                    <div class="health-content" style="display: none;">
+                        <div class="alert-badge" id="alertBadge">
+                            <span class="alert-level" id="alertLevel">--</span>
+                        </div>
+                        <div class="recommendations" id="recommendations"></div>
+                        <div class="risk-groups" id="riskGroups"></div>
+                        <div class="activities" id="activities"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Formation Observabilité & OpenTelemetry - BPI France</p>
+            <div class="services-status">
+                <span class="service-badge" id="airQualityStatus">Air Quality: <span class="status-dot">●</span></span>
+                <span class="service-badge" id="weatherStatus">Weather: <span class="status-dot">●</span></span>
+                <span class="service-badge" id="healthStatus">Health: <span class="status-dot">●</span></span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Custom JS -->
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
