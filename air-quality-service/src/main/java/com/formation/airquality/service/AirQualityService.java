@@ -112,13 +112,13 @@ public class AirQualityService {
                 double latitude = coords[0];
                 double longitude = coords[1];
 
-                // API v3 : Récupérer les locations près de la ville
+                // Appel à l'API OpenAQ v3 avec les coordonnées de la ville (rayon max 25km)
                 JsonNode response = webClient.get()
                         .uri(uriBuilder -> uriBuilder
                                 .path("/locations")
-                                .queryParam("limit", "50")
                                 .queryParam("coordinates", latitude + "," + longitude)
-                                .queryParam("radius", "100000") // 100km pour avoir plus de données
+                                .queryParam("radius", "25000")
+                                .queryParam("limit", "20")
                                 .build())
                         .retrieve()
                         .bodyToMono(JsonNode.class)
@@ -126,9 +126,17 @@ public class AirQualityService {
                         .block();
 
                 if (response != null && response.has("results")) {
-                    return parseLocationsWithLatest(response.get("results"), city, country);
+                    JsonNode results = response.get("results");
+                    List<AirQualityData> data = parseV3Results(results, city, country);
+
+                    if (data.isEmpty()) {
+                        logger.warn("No air quality data found for city: {}", city);
+                    }
+
+                    return data;
                 }
 
+                logger.warn("Empty response from OpenAQ API");
                 return new ArrayList<>();
             } catch (Exception e) {
                 logger.error("Error fetching air quality data", e);
@@ -146,12 +154,16 @@ public class AirQualityService {
             try {
                 simulateLatency();
 
+                // L'API OpenAQ limite le rayon à 25000 mètres maximum
+                int actualRadius = Math.min(radius, 25000);
+
+                // Appel à l'API OpenAQ v3 avec coordonnées et rayon
                 JsonNode response = webClient.get()
                         .uri(uriBuilder -> uriBuilder
                                 .path("/locations")
-                                .queryParam("limit", "10")
                                 .queryParam("coordinates", latitude + "," + longitude)
-                                .queryParam("radius", radius)
+                                .queryParam("radius", String.valueOf(actualRadius))
+                                .queryParam("limit", "20")
                                 .build())
                         .retrieve()
                         .bodyToMono(JsonNode.class)
@@ -159,9 +171,17 @@ public class AirQualityService {
                         .block();
 
                 if (response != null && response.has("results")) {
-                    return parseV3Results(response.get("results"), "Unknown", "XX");
+                    JsonNode results = response.get("results");
+                    List<AirQualityData> data = parseV3Results(results, "Unknown", "FR");
+
+                    if (data.isEmpty()) {
+                        logger.warn("No air quality data found for coordinates: {}, {}", latitude, longitude);
+                    }
+
+                    return data;
                 }
 
+                logger.warn("Empty response from OpenAQ API");
                 return new ArrayList<>();
             } catch (Exception e) {
                 logger.error("Error fetching air quality data by coordinates", e);
@@ -335,6 +355,17 @@ public class AirQualityService {
             double longitude = coordinates != null && coordinates.has("longitude") ?
                 coordinates.get("longitude").asDouble() : 0.0;
 
+            // Construire un mapping sensorId -> paramètre depuis le tableau sensors
+            java.util.Map<Integer, JsonNode> sensorParameterMap = new java.util.HashMap<>();
+            if (location.has("sensors") && location.get("sensors").isArray()) {
+                for (JsonNode sensor : location.get("sensors")) {
+                    int sensorId = sensor.has("id") ? sensor.get("id").asInt() : 0;
+                    if (sensorId > 0 && sensor.has("parameter")) {
+                        sensorParameterMap.put(sensorId, sensor.get("parameter"));
+                    }
+                }
+            }
+
             // Récupérer les données latest de cette location
             int locationId = location.has("id") ? location.get("id").asInt() : 0;
             if (locationId > 0) {
@@ -354,11 +385,16 @@ public class AirQualityService {
                             aqData.setLatitude(latitude);
                             aqData.setLongitude(longitude);
 
-                            JsonNode parameter = measurement.get("parameter");
+                            // Récupérer le sensor ID depuis le measurement
+                            int sensorId = measurement.has("sensorsId") ? measurement.get("sensorsId").asInt() : 0;
+
+                            // Chercher le paramètre correspondant dans le mapping
                             String paramName = "unknown";
                             String unit = "";
 
-                            if (parameter != null) {
+                            if (sensorId > 0 && sensorParameterMap.containsKey(sensorId)) {
+                                JsonNode parameter = sensorParameterMap.get(sensorId);
+
                                 // Essayer d'abord le champ "name"
                                 if (parameter.has("name") && !parameter.get("name").isNull()) {
                                     paramName = parameter.get("name").asText();

@@ -123,10 +123,23 @@ def generate_recommendations(air_quality_data: list, weather_data: dict) -> Heal
     # Calcul de l'AQI moyen
     if not air_quality_data:
         aqi = 50
-        quality_level = "Good"
+        quality_level = "Bon"
     else:
         aqi = sum(item.get('aqi', 50) for item in air_quality_data) / len(air_quality_data)
-        quality_level = air_quality_data[0].get('qualityLevel', 'Good')
+
+        # Calcul du niveau de qualité basé sur l'AQI moyen
+        if aqi <= 50:
+            quality_level = "Bon"
+        elif aqi <= 100:
+            quality_level = "Moyen"
+        elif aqi <= 150:
+            quality_level = "Dégradé"
+        elif aqi <= 200:
+            quality_level = "Mauvais"
+        elif aqi <= 300:
+            quality_level = "Très mauvais"
+        else:
+            quality_level = "Extrême"
 
     # Détermination du niveau d'alerte
     if aqi <= 50:
