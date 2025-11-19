@@ -345,16 +345,22 @@ done
 ### Générer de la charge
 
 ```bash
-# Installer hey (HTTP load generator)
-# macOS: brew install hey
-# Linux: go install github.com/rakyll/hey@latest
+# Installer k6 (HTTP load generator)
+# macOS: brew install k6
+# Linux: https://k6.io/docs/get-started/installation/
+# Windows: choco install k6
 
-# Générer de la charge sur le service Weather
-hey -n 1000 -c 10 "http://localhost:8081/api/weather/city?city=Paris&country=FR"
+# Générer de la charge avec le script fourni (durée: 60s)
+./scripts/generate-load.sh
 
-# Sur le service Health
-hey -n 500 -c 5 "http://localhost:8082/api/health/recommendations?city=Paris&country=FR"
+# Ou directement avec k6
+k6 run scripts/load-test.js
 ```
+
+**⚠️ Important** : Le test est configuré pour respecter les quotas API (OpenWeather: 1000/jour, OpenAQ: 60/minute).
+- 0.3 req/s sur health-service → 18 appels en 60s
+- Vous pouvez lancer le test **~55 fois par jour**
+- Voir [LOAD_TESTING.md](LOAD_TESTING.md) pour plus de détails
 
 ## 📚 Ressources Supplémentaires
 
@@ -440,7 +446,7 @@ curl http://localhost:8082/metrics
 - Créez une visualisation dans Grafana
 
 ### Exercice 5 : Analyser les performances
-- Générez de la charge avec `hey`
+- Générez de la charge avec `k6`
 - Observez les métriques en temps réel
 - Identifiez les goulots d'étranglement
 

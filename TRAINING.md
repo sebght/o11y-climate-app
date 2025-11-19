@@ -206,12 +206,18 @@ sum by (service, status) (rate(health_api_calls_total[5m]))
 **Tâche** : Générer de la charge et analyser l'impact
 
 ```bash
-# Installer 'hey' si nécessaire
-# macOS: brew install hey
-# Linux: go install github.com/rakyll/hey@latest
+# Installer 'k6' si nécessaire
+# macOS: brew install k6
+# Linux: https://k6.io/docs/get-started/installation/
+# Windows: choco install k6
 
-# Générer de la charge
-hey -n 1000 -c 10 "http://localhost:8081/api/weather/city?city=Paris&country=FR"
+# Générer de la charge avec le script fourni (60 secondes)
+./scripts/generate-load.sh
+
+# Ou directement avec k6
+k6 run scripts/load-test.js
+
+# Pour une durée personnalisée, éditez scripts/load-test.js
 ```
 
 **Analyses** :

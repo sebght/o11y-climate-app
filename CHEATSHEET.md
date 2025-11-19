@@ -68,21 +68,27 @@ make test-paris
 ## ⚡ Génération de Charge
 
 ```bash
-# Installation de 'hey'
+# Installation de 'k6'
 # macOS
-brew install hey
+brew install k6
 
 # Linux
-go install github.com/rakyll/hey@latest
+# https://k6.io/docs/get-started/installation/
+
+# Windows
+choco install k6
 
 # Génération de charge (60 secondes)
-./scripts/generate-load.sh 60
+./scripts/generate-load.sh
 
-# Charge spécifique sur un service
-hey -n 1000 -c 10 "http://localhost:8081/api/weather/city?city=Paris&country=FR"
+# Ou directement avec k6
+k6 run scripts/load-test.js
 
 # Avec Makefile
 make test-load
+
+# Pour personnaliser la durée, éditez scripts/load-test.js
+# et modifiez "duration: '60s'" dans chaque scénario
 ```
 
 ## 📈 Métriques

@@ -46,6 +46,5 @@ test-paris: ## Test rapide avec Paris
 	@echo "🗼 Test avec Paris..."
 	@curl -s "http://localhost:8082/api/health/recommendations?city=Paris&country=FR" | jq '.'
 
-test-load: ## Génère de la charge (nécessite 'hey')
-	@echo "⚡ Génération de charge..."
-	hey -n 100 -c 5 "http://localhost:8081/api/weather/city?city=Paris&country=FR"
+test-load: ## Génère de la charge (nécessite 'k6')
+	@./scripts/generate-load.sh 60
