@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  # Tempo runs as user 10001, and docker compose creates the volume as root.
+  # As such, we need to chown the volume in order for Tempo to start correctly.
+  init:
+    image: busybox:latest
+    user: root
+    entrypoint:
+      - sh
+      - -c
+      - |-
+          mkdir -p /var/tempo /var/prometheus /var/grafana /var/loki && \
+          chown -R 10001:10001 /var/tempo /var/loki && \
+          chown -R 65534:65534 /var/prometheus && \
+          chown -R 472:0 /var/grafana
+    volumes:
+      - ./data:/var
+
   # Service Spring Boot - Qualité de l'air
   air-quality-service:
     build:
@@ -19,8 +35,6 @@ services:
       - OTEL_LOGS_EXPORTER=none
     networks:
       - app-network
-    depends_on:
-      - tempo
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -43,8 +57,6 @@ services:
       - OTEL_SERVICE_NAME=weather-service
     networks:
       - app-network
-    depends_on:
-      - tempo
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/health"]
       interval: 30s
@@ -70,7 +82,6 @@ services:
     depends_on:
       - air-quality-service
       - weather-service
-      - tempo
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/health"]
       interval: 30s
@@ -99,7 +110,7 @@ services:
       start_period: 10s
 
   nginx-exporter:
-    image: nginx/nginx-prometheus-exporter:latest
+    image: docker.io/nginx/nginx-prometheus-exporter:latest
     container_name: nginx-exporter
     ports:
       - "9113:9113"
@@ -111,7 +122,7 @@ services:
       - frontend
 
   prometheus:
-    image: prom/prometheus:latest
+    image: docker.io/prom/prometheus:v3.7.3
     container_name: prometheus
     ports:
       - "9090:9090"
@@ -131,19 +142,17 @@ services:
     networks:
       - app-network
     depends_on:
-      - air-quality-service
-      - weather-service
-      - health-service
+      - init
 
   grafana:
-    image: grafana/grafana:latest
+    image: docker.io/grafana/grafana:12.3
     container_name: grafana
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
     volumes:
       - grafana-data:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning
@@ -151,6 +160,25 @@ services:
       - app-network
     depends_on:
       - prometheus
+
+  alertmanager:
+    image: docker.io/prom/alertmanager:v0.29.0
+    container_name: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./observability/alertmanager:/etc/alertmanager
+    networks:
+      - app-network
+
+  mailpit:
+    image: docker.io/axllent/mailpit:v1.27.11
+    container_name: mailpit
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP
+    networks:
+      - app-network
 
   tempo:
     image: docker.io/grafana/tempo:2.9.0
@@ -164,7 +192,8 @@ services:
       - ./data/tempo:/var/tempo
     networks:
       - app-network
-
+    depends_on:
+      - init
 
 networks:
   app-network:
