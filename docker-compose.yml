@@ -13,8 +13,14 @@ services:
       - SPRING_APPLICATION_NAME=air-quality-service
       - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus
       - OPENAQ_API_KEY=${OPENAQ_API_KEY}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - OTEL_SERVICE_NAME=air-quality-service
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_LOGS_EXPORTER=none
     networks:
       - app-network
+    depends_on:
+      - tempo
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -33,8 +39,12 @@ services:
     environment:
       - PORT=8081
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-demo}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=tempo:4317
+      - OTEL_SERVICE_NAME=weather-service
     networks:
       - app-network
+    depends_on:
+      - tempo
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/health"]
       interval: 30s
@@ -53,11 +63,14 @@ services:
     environment:
       - AIR_QUALITY_SERVICE=http://air-quality-service:8080
       - WEATHER_SERVICE=http://weather-service:8081
+      - OTEL_EXPORTER_OTLP_ENDPOINT=tempo:4317
+      - OTEL_SERVICE_NAME=health-service
     networks:
       - app-network
     depends_on:
       - air-quality-service
       - weather-service
+      - tempo
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/health"]
       interval: 30s
@@ -65,7 +78,6 @@ services:
       retries: 3
       start_period: 30s
 
-  # Frontend
   frontend:
     build:
       context: ./frontend
@@ -86,7 +98,6 @@ services:
       retries: 3
       start_period: 10s
 
-  # Nginx Prometheus Exporter
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:latest
     container_name: nginx-exporter
@@ -99,7 +110,6 @@ services:
     depends_on:
       - frontend
 
-  # Prometheus pour la collecte des métriques
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -114,6 +124,10 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
+      - '--web.enable-remote-write-receiver'
+      - '--enable-feature=exemplar-storage'
+      - '--enable-feature=native-histograms'
+
     networks:
       - app-network
     depends_on:
@@ -121,7 +135,6 @@ services:
       - weather-service
       - health-service
 
-  # Grafana pour la visualisation
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -138,6 +151,20 @@ services:
       - app-network
     depends_on:
       - prometheus
+
+  tempo:
+    image: docker.io/grafana/tempo:2.9.0
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo/config.yaml" ]
+    ports:
+      - "3200:3200" # tempo http
+      - "4317:4317" # otlp grpc
+    volumes:
+      - ./observability/tempo:/etc/tempo
+      - ./data/tempo:/var/tempo
+    networks:
+      - app-network
+
 
 networks:
   app-network:

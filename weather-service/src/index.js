@@ -1,3 +1,6 @@
+// IMPORTANT: Charger le tracing en PREMIER avant tout autre module
+require('./tracing');
+
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');

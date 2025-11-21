@@ -6,8 +6,18 @@ import httpx
 import time
 import random
 import logging
+import os
 from typing import Optional
 from .models import HealthRecommendation, AlertLevel
+
+# OpenTelemetry imports
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 
 # Configuration du logging
 logging.basicConfig(
@@ -16,11 +26,44 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Configuration OpenTelemetry
+def configure_telemetry():
+    """Configure OpenTelemetry tracing"""
+    # Configuration du resource avec le nom du service
+    resource = Resource(attributes={
+        SERVICE_NAME: "health-service"
+    })
+
+    # Configuration du provider de traces
+    provider = TracerProvider(resource=resource)
+
+    # Configuration de l'exporteur OTLP vers Tempo
+    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "tempo:4317")
+    otlp_exporter = OTLPSpanExporter(
+        endpoint=otlp_endpoint,
+        insecure=True  # Pour dev/test, pas de TLS
+    )
+
+    # Ajout du processeur de spans
+    provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+
+    # Définir comme provider global
+    trace.set_tracer_provider(provider)
+
+    logger.info(f"OpenTelemetry configured to export traces to {otlp_endpoint}")
+
+# Initialiser OpenTelemetry
+configure_telemetry()
+
 app = FastAPI(
     title="Health Recommendations Service",
     description="Service de recommandations santé basé sur la qualité de l'air et la météo",
     version="1.0.0"
 )
+
+# Instrumenter FastAPI et httpx automatiquement
+FastAPIInstrumentor.instrument_app(app)
+HTTPXClientInstrumentor().instrument()
 
 # CORS
 app.add_middleware(
