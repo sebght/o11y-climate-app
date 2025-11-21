@@ -5,6 +5,12 @@ global:
 rule_files:
   - rules/*.yaml
 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+
 scrape_configs:
   # Service Spring Boot - Air Quality
   - job_name: 'air-quality-service'
@@ -46,3 +52,8 @@ scrape_configs:
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
+
+  # Fausse alerte pour test
+  - job_name: 'fake-alert'
+    static_configs:
+      - targets: ['localhost:1111']
