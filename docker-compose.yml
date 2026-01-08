@@ -1,5 +1,4 @@
-version: '3.8'
-
+---
 services:
   # Tempo runs as user 10001, and docker compose creates the volume as root.
   # As such, we need to chown the volume in order for Tempo to start correctly.
@@ -141,6 +140,7 @@ services:
 
     networks:
       - app-network
+      - monitoring
     depends_on:
       - init
 
@@ -157,7 +157,7 @@ services:
       - grafana-data:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning
     networks:
-      - app-network
+      - monitoring
     depends_on:
       - prometheus
 
@@ -169,7 +169,7 @@ services:
     volumes:
       - ./observability/alertmanager:/etc/alertmanager
     networks:
-      - app-network
+      - monitoring
 
   mailpit:
     image: docker.io/axllent/mailpit:v1.27.11
@@ -178,7 +178,42 @@ services:
       - "8025:8025"  # Web UI
       - "1025:1025"  # SMTP
     networks:
+      - monitoring
+
+  loki:
+    image: docker.io/grafana/loki:3.6.3
+    container_name: loki
+    command: [ "-config.file=/etc/loki/config.yaml" ]
+    volumes:
+      - ./observability/loki:/etc/loki
+      - ./data/loki:/var/loki
+    ports:
+      - "3100" # loki
+    networks:
+      - monitoring
+    depends_on:
+      - init
+
+  alloy:
+    image: docker.io/grafana/alloy:v1.12.1
+    container_name: alloy
+    volumes:
+      - ./observability/alloy:/etc/alloy
+      - /:/hostfs
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+    ports:
+      - "12345:12345"
+    networks:
       - app-network
+      - monitoring
+    depends_on:
+      - tempo
+      - loki
+      - prometheus
 
   tempo:
     image: docker.io/grafana/tempo:2.9.0
@@ -186,17 +221,18 @@ services:
     command: [ "-config.file=/etc/tempo/config.yaml" ]
     ports:
       - "3200:3200" # tempo http
-      - "4317:4317" # otlp grpc
     volumes:
       - ./observability/tempo:/etc/tempo
       - ./data/tempo:/var/tempo
     networks:
-      - app-network
+      - monitoring
     depends_on:
       - init
 
 networks:
   app-network:
+    driver: bridge
+  monitoring:
     driver: bridge
 
 volumes:

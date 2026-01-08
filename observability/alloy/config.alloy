@@ -1,0 +1,191 @@
+livedebugging {
+  enabled = true
+}
+
+otelcol.receiver.otlp "default" {
+  grpc {}
+  http {}
+  output {
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    traces  = [
+      otelcol.exporter.otlp.tempo.input,
+      otelcol.connector.servicegraph.default.input,
+      otelcol.connector.spanmetrics.default.input,
+    ]
+  }
+}
+
+otelcol.connector.spanmetrics "default" {
+  metrics_flush_interval = "15s"
+  metrics_expiration = "5m"
+  namespace = "traces_spanmetrics"
+  histogram {
+    exponential {}
+    unit = "s"
+  }
+  exemplars {
+    enabled = true
+  }
+  output {
+    metrics = [otelcol.exporter.prometheus.default.input]
+  }
+}
+
+otelcol.connector.servicegraph "default" {
+  dimensions = ["service.name"]
+  output {
+    metrics = [otelcol.exporter.prometheus.default.input]
+  }
+}
+
+otelcol.exporter.prometheus "default" {
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+    send_native_histograms = true
+  }
+}
+
+prometheus.exporter.self "alloy" {}
+
+prometheus.scrape "alloy" {
+  targets    = prometheus.exporter.self.alloy.targets
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+prometheus.exporter.unix "node" {
+  rootfs_path    = "/hostfs"
+  procfs_path    = "/hostfs/proc"
+  sysfs_path     = "/hostfs/sys"
+  udev_data_path = "/hostfs/etc/udev/data"
+}
+
+prometheus.scrape "node" {
+  targets    = prometheus.exporter.unix.node.targets
+  forward_to = [prometheus.remote_write.default.receiver]
+  job_name = "node"
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure             = true
+      insecure_skip_verify = true
+    }
+  }
+}
+
+// loki.process "systemd_journal" {
+//   forward_to = [loki.write.default.receiver]
+//
+//   stage.match {
+//     selector = "{job=\"systemd-journal\"}"
+//
+//     stage.metrics {
+//       metric.counter {
+//         name        = "log_lines_total"
+//         action      = "inc"
+//         description = "Total number of log lines"
+//         prefix      = "systemd_journal_"
+//         match_all   = true
+//       }
+//     }
+//   }
+// }
+
+discovery.relabel "systemd_journal" {
+  targets = []
+
+  rule {
+    source_labels = ["__journal__hostname"]
+    target_label  = "host"
+  }
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    regex         = "(.+)"
+    target_label  = "systemd_unit"
+  }
+
+  rule {
+    source_labels = ["__journal__systemd_user_unit"]
+    regex         = "(.+)"
+    target_label  = "systemd_user_unit"
+  }
+
+  rule {
+    source_labels = ["__journal__transport"]
+    regex         = "(.+)"
+    target_label  = "transport"
+  }
+
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    regex         = "(.+)"
+    target_label  = "severity"
+  }
+}
+
+// loki.source.journal "systemd_journal" {
+//   path          = "/hostfs/var/log/journal"
+//   relabel_rules = discovery.relabel.systemd_journal.rules
+//   forward_to    = [loki.process.systemd_journal.receiver]
+//   labels        = {
+//     job = "systemd-journal",
+//   }
+// }
+
+discovery.docker "linux" {
+  host = "unix:///hostfs/run/docker.sock"
+}
+
+loki.source.docker "default" {
+  host          = "unix:///hostfs/run/docker.sock"
+  targets       = discovery.docker.linux.targets
+  labels        = {"platform" = "docker"}
+  relabel_rules = discovery.relabel.logs_integrations_docker.rules
+  forward_to    = [loki.write.default.receiver]
+}
+
+// Define a relabeling rule to create a service name from the container name.
+discovery.relabel "logs_integrations_docker" {
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container_name"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+
+  rule {
+    action = "labelmap"
+    regex = "__meta_docker_container_label_(.*)"
+  }
+
+  rule {
+    target_label = "instance"
+    replacement  = constants.hostname
+  }
+
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+  external_labels = {}
+}
