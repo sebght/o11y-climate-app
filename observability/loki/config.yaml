@@ -8,11 +8,11 @@ server:
 
 common:
   instance_addr: 127.0.0.1
-  path_prefix: /tmp/loki
+  path_prefix: /var/loki
   storage:
     filesystem:
-      chunks_directory: /tmp/loki/chunks
-      rules_directory: /tmp/loki/rules
+      chunks_directory: /var/loki/chunks
+      rules_directory: /var/loki/rules
   replication_factor: 1
   ring:
     kvstore:
@@ -52,7 +52,7 @@ ruler:
     type: local
     local:
       directory: /etc/loki/rules
-  rule_path: /tmp/loki/rules
+  rule_path: /var/loki/rules
   enable_api: true
   enable_sharding: false
   poll_interval: 1m
@@ -62,7 +62,7 @@ ruler:
       prom:
         url: http://prometheus:9090/api/v1/write
   wal:
-    dir: /tmp/loki/ruler-wal
+    dir: /var/loki/ruler-wal
 
 frontend:
   encoding: protobuf
