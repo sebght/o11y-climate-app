@@ -26,8 +26,8 @@ Cette application est composée de **3 microservices** et d'un **front-end** qui
        │              │                │          │
        │              │                │          │
        ▼              ▼                ▼          ▼
-   OpenAQ API   OpenWeather API   Appels aux
-                                   autres APIs
+   Mock Data     Mock Data       Appels aux
+   Generator     Generator       autres services
 
          ┌──────────────────────────────┐
          │                              │
@@ -41,14 +41,16 @@ Cette application est composée de **3 microservices** et d'un **front-end** qui
 ### Services
 
 1. **🌬️ Air Quality Service (Spring Boot)** - Port 8080
-   - Récupère les données de qualité de l'air via l'API OpenAQ v3
+   - Génère des données fictives de qualité de l'air cohérentes
    - Calcule l'AQI (Air Quality Index)
    - Expose des métriques Prometheus via Micrometer
+   - Données réalistes qui varient à chaque requête
 
 2. **🌤️ Weather Service (Node.js)** - Port 8081
-   - Récupère les données météorologiques via OpenWeatherMap
+   - Génère des données météorologiques fictives cohérentes
    - Fournit température, humidité, vent, etc.
    - Expose des métriques Prometheus via prom-client
+   - Données adaptées à la saison actuelle (hiver)
 
 3. **🏥 Health Service (FastAPI)** - Port 8082
    - Génère des recommandations santé basées sur l'air et la météo
@@ -70,34 +72,14 @@ Cette application est composée de **3 microservices** et d'un **front-end** qui
 
 - Docker ou Podman
 - Docker Compose
-- **Clé API OpenAQ v3** (obligatoire) : https://docs.openaq.org/using-the-api/api-key
-- (Optionnel) Clé API OpenWeatherMap : https://openweathermap.org/api
+
+**Note:** Les services utilisent maintenant des **données fictives générées localement**. Aucune clé API externe n'est nécessaire, ce qui permet un load testing illimité sans quotas.
 
 ### Configuration
 
-1. **Copier le fichier d'environnement**
-
-```bash
-cp .env.example .env
-```
-
-2. **Configurer les clés API**
-
-Éditez le fichier `.env` et ajoutez vos clés API :
-
-```env
-# OpenAQ API Key (OBLIGATOIRE - l'API v2 est dépréciée depuis janvier 2025)
-OPENAQ_API_KEY=votre_cle_openaq_v3_ici
-
-# OpenWeatherMap API Key (optionnel)
-OPENWEATHER_API_KEY=votre_cle_openweather_ici
-```
-
-> ⚠️ **Important**: L'API OpenAQ v2 a été retirée le 31 janvier 2025. L'application utilise maintenant l'API v3 qui nécessite une clé API gratuite.
-
-> ℹ️ **Note**: Si vous n'avez pas de clé OpenWeatherMap, le service météo fonctionnera avec des données limitées.
-
 ### Démarrage avec Docker Compose
+
+Aucune configuration supplémentaire n'est nécessaire. Les services génèrent automatiquement des données fictives.
 
 ```bash
 # Démarrer tous les services

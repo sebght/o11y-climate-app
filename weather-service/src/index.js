@@ -3,12 +3,10 @@ require('./tracing');
 
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
 const promClient = require('prom-client');
 
 const app = express();
 const PORT = process.env.PORT || 8081;
-const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || 'demo';
 
 // Middleware
 app.use(cors());
@@ -28,14 +26,14 @@ const httpRequestDuration = new promClient.Histogram({
 
 const apiCallCounter = new promClient.Counter({
   name: 'weather_api_calls_total',
-  help: 'Total number of calls to OpenWeatherMap API',
+  help: 'Total number of weather data requests',
   labelNames: ['endpoint', 'status'],
   registers: [register]
 });
 
 const apiLatencyHistogram = new promClient.Histogram({
   name: 'weather_api_latency_seconds',
-  help: 'Latency of OpenWeatherMap API calls',
+  help: 'Latency of weather data generation',
   labelNames: ['endpoint'],
   buckets: [0.1, 0.3, 0.5, 0.7, 1, 2, 5],
   registers: [register]
@@ -57,6 +55,115 @@ function simulateLatency() {
   return new Promise(resolve => setTimeout(resolve, delay));
 }
 
+// Générateur de données météo fictives
+function generateMockWeatherData(city, country = 'FR') {
+  // Coordonnées approximatives des villes (pour la cohérence)
+  const cityCoordinates = {
+    'Paris': { lat: 48.8566, lon: 2.3522 },
+    'Lyon': { lat: 45.7640, lon: 4.8357 },
+    'Marseille': { lat: 43.2965, lon: 5.3698 },
+    'Toulouse': { lat: 43.6047, lon: 1.4442 },
+    'Nice': { lat: 43.7102, lon: 7.2620 },
+    'Nantes': { lat: 47.2184, lon: -1.5536 },
+    'Strasbourg': { lat: 48.5734, lon: 7.7521 },
+    'Bordeaux': { lat: 44.8378, lon: -0.5792 },
+    'Lille': { lat: 50.6292, lon: 3.0573 },
+    'Rennes': { lat: 48.1173, lon: -1.6778 }
+  };
+
+  const coords = cityCoordinates[city] || cityCoordinates['Paris'];
+
+  // Température de base pour janvier (hivernale)
+  const baseTemp = 5 + Math.random() * 5; // 5-10°C
+  const variation = (Math.random() - 0.5) * 4; // Variation de -2 à +2°C
+  const temperature = Math.round((baseTemp + variation) * 10) / 10;
+
+  // Conditions météo d'hiver
+  const winterConditions = [
+    { desc: 'ciel dégagé', icon: '01d', clouds: 10 },
+    { desc: 'peu nuageux', icon: '02d', clouds: 25 },
+    { desc: 'partiellement nuageux', icon: '03d', clouds: 50 },
+    { desc: 'couvert', icon: '04d', clouds: 90 },
+    { desc: 'petite pluie', icon: '10d', clouds: 85 },
+    { desc: 'pluie', icon: '10d', clouds: 95 },
+    { desc: 'brouillard', icon: '50d', clouds: 100 }
+  ];
+
+  const condition = winterConditions[Math.floor(Math.random() * winterConditions.length)];
+
+  return {
+    name: city,
+    sys: { country: country },
+    coord: coords,
+    main: {
+      temp: temperature,
+      feels_like: temperature - (Math.random() * 2 + 1),
+      humidity: 60 + Math.floor(Math.random() * 30), // 60-90% en hiver
+      pressure: 1010 + Math.floor(Math.random() * 20) // 1010-1030 hPa
+    },
+    weather: [{
+      description: condition.desc,
+      icon: condition.icon
+    }],
+    wind: {
+      speed: Math.random() * 8 + 2, // 2-10 m/s
+      deg: Math.floor(Math.random() * 360)
+    },
+    clouds: {
+      all: condition.clouds + Math.floor(Math.random() * 10)
+    },
+    visibility: Math.floor(Math.random() * 5000) + 5000, // 5-10km
+    dt: Math.floor(Date.now() / 1000)
+  };
+}
+
+// Générateur de prévisions météo fictives
+function generateMockForecast(city, country = 'FR', days = 5) {
+  const baseTemp = 5 + Math.random() * 5;
+  const forecastItems = [];
+
+  const conditions = [
+    { desc: 'ciel dégagé', icon: '01d' },
+    { desc: 'peu nuageux', icon: '02d' },
+    { desc: 'couvert', icon: '04d' },
+    { desc: 'pluie légère', icon: '10d' },
+    { desc: 'pluie', icon: '10d' }
+  ];
+
+  // Générer des prévisions toutes les 3 heures pendant N jours
+  for (let i = 0; i < days * 8; i++) {
+    const hourOffset = i * 3;
+    const tempVariation = Math.sin(hourOffset / 12) * 3; // Variation jour/nuit
+    const randomVariation = (Math.random() - 0.5) * 2;
+    const temp = Math.round((baseTemp + tempVariation + randomVariation) * 10) / 10;
+
+    const condition = conditions[Math.floor(Math.random() * conditions.length)];
+
+    forecastItems.push({
+      dt: Math.floor(Date.now() / 1000) + (hourOffset * 3600),
+      main: {
+        temp: temp,
+        humidity: 60 + Math.floor(Math.random() * 30)
+      },
+      weather: [{
+        description: condition.desc,
+        icon: condition.icon
+      }],
+      wind: {
+        speed: Math.random() * 8 + 2
+      }
+    });
+  }
+
+  return {
+    city: {
+      name: city,
+      country: country
+    },
+    list: forecastItems
+  };
+}
+
 // Routes
 app.get('/api/weather/city', async (req, res) => {
   const { city, country = 'FR' } = req.query;
@@ -71,15 +178,8 @@ app.get('/api/weather/city', async (req, res) => {
   try {
     await simulateLatency();
 
-    const response = await axios.get('https://api.openweathermap.org/data/2.5/weather', {
-      params: {
-        q: `${city},${country}`,
-        appid: OPENWEATHER_API_KEY,
-        units: 'metric',
-        lang: 'fr'
-      },
-      timeout: 10000
-    });
+    // Utilisation des données fictives au lieu de l'API réelle
+    const response = { data: generateMockWeatherData(city, country) };
 
     apiCallCounter.inc({ endpoint: 'current', status: 'success' });
     endTimer();
@@ -133,16 +233,10 @@ app.get('/api/weather/coordinates', async (req, res) => {
   try {
     await simulateLatency();
 
-    const response = await axios.get('https://api.openweathermap.org/data/2.5/weather', {
-      params: {
-        lat: latitude,
-        lon: longitude,
-        appid: OPENWEATHER_API_KEY,
-        units: 'metric',
-        lang: 'fr'
-      },
-      timeout: 10000
-    });
+    // Utilisation des données fictives au lieu de l'API réelle
+    const mockData = generateMockWeatherData('Unknown');
+    mockData.coord = { lat: parseFloat(latitude), lon: parseFloat(longitude) };
+    const response = { data: mockData };
 
     apiCallCounter.inc({ endpoint: 'current', status: 'success' });
     endTimer();
@@ -198,15 +292,8 @@ app.get('/api/weather/forecast', async (req, res) => {
   try {
     await simulateLatency();
 
-    const response = await axios.get('https://api.openweathermap.org/data/2.5/forecast', {
-      params: {
-        q: `${city},${country}`,
-        appid: OPENWEATHER_API_KEY,
-        units: 'metric',
-        lang: 'fr'
-      },
-      timeout: 10000
-    });
+    // Utilisation des données fictives au lieu de l'API réelle
+    const response = { data: generateMockForecast(city, country, days) };
 
     apiCallCounter.inc({ endpoint: 'forecast', status: 'success' });
     endTimer();

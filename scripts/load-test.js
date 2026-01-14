@@ -6,38 +6,55 @@ import { Rate } from 'k6/metrics';
 const errorRate = new Rate('errors');
 
 // Configuration des scénarios de charge
-// ⚠️ IMPORTANT: Taux réduit pour respecter les quotas API du Free tier
-// - OpenWeather: 1000 req/jour
-// - OpenAQ: 60 req/minute
-// Chaque appel à health-service appelle weather + air-quality
+// Les services utilisent des données fictives, donc pas de limite de quotas !
+// Chaque appel à health-service appelle weather + air-quality (données générées localement)
+// Target: 250 requêtes en 60 secondes = ~4.2 req/s (charge modérée et soutenable)
 export const options = {
   scenarios: {
     health_paris: {
       executor: 'constant-arrival-rate',
       exec: 'healthParis',
-      rate: 4,
+      rate: 100,  // 1.67 req/s
       timeUnit: '1m',
       duration: '60s',
-      preAllocatedVUs: 1,
-      maxVUs: 3,
+      preAllocatedVUs: 3,
+      maxVUs: 15,
     },
     health_lyon: {
       executor: 'constant-arrival-rate',
       exec: 'healthLyon',
-      rate: 2,
+      rate: 75,  // 1.25 req/s
       timeUnit: '1m',
       duration: '60s',
-      preAllocatedVUs: 1,
-      maxVUs: 3,
+      preAllocatedVUs: 2,
+      maxVUs: 12,
     },
     health_marseille: {
       executor: 'constant-arrival-rate',
       exec: 'healthMarseille',
-      rate: 1,
+      rate: 40,  // 0.67 req/s
+      timeUnit: '1m',
+      duration: '60s',
+      preAllocatedVUs: 2,
+      maxVUs: 8,
+    },
+    health_toulouse: {
+      executor: 'constant-arrival-rate',
+      exec: 'healthToulouse',
+      rate: 25,  // 0.42 req/s
       timeUnit: '1m',
       duration: '60s',
       preAllocatedVUs: 1,
-      maxVUs: 2,
+      maxVUs: 6,
+    },
+    health_nice: {
+      executor: 'constant-arrival-rate',
+      exec: 'healthNice',
+      rate: 10,  // 0.17 req/s
+      timeUnit: '1m',
+      duration: '60s',
+      preAllocatedVUs: 1,
+      maxVUs: 4,
     },
   },
   thresholds: {
@@ -75,6 +92,32 @@ export function healthLyon() {
 // Fonction pour Health Service - Marseille
 export function healthMarseille() {
   const url = 'http://localhost:8082/api/health/recommendations?city=Marseille&country=FR';
+  const res = http.get(url);
+
+  const success = check(res, {
+    'status is 200': (r) => r.status === 200,
+    'response time < 5s': (r) => r.timings.duration < 5000,
+  });
+
+  errorRate.add(!success);
+}
+
+// Fonction pour Health Service - Toulouse
+export function healthToulouse() {
+  const url = 'http://localhost:8082/api/health/recommendations?city=Toulouse&country=FR';
+  const res = http.get(url);
+
+  const success = check(res, {
+    'status is 200': (r) => r.status === 200,
+    'response time < 5s': (r) => r.timings.duration < 5000,
+  });
+
+  errorRate.add(!success);
+}
+
+// Fonction pour Health Service - Nice
+export function healthNice() {
+  const url = 'http://localhost:8082/api/health/recommendations?city=Nice&country=FR';
   const res = http.get(url);
 
   const success = check(res, {

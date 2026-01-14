@@ -2,40 +2,39 @@
 
 ## 📊 Configuration Actuelle
 
-Le script k6 est configuré pour **respecter les quotas des API externes** :
+Le script k6 génère maintenant une **charge importante sans limite de quotas** car les services utilisent des **données fictives générées localement**.
 
-### Quotas API
-- **OpenWeather**: 1000 requêtes/jour (free tier)
-- **OpenAQ**: 60 requêtes/minute ou 2000 requêtes/heure (free tier)
+### Avantages des Données Fictives
+- ✅ **Aucune limite de quotas** : Testez autant que vous voulez
+- ✅ **Pas de clés API nécessaires** : Démarrage immédiat
+- ✅ **Performances constantes** : Pas de dépendance réseau externe
+- ✅ **Données cohérentes** : Valeurs réalistes qui varient à chaque requête
 
-### Impact du Health Service
+### Architecture du Test
 Chaque appel au `health-service` déclenche :
-- 1 appel à `weather-service` → OpenWeather API
-- 1 appel à `air-quality-service` → OpenAQ API
+- 1 appel à `weather-service` → Génération de données météo fictives
+- 1 appel à `air-quality-service` → Génération de données de qualité d'air fictives
 
 ## ⚙️ Scénarios de Test
 
-Le script génère une charge **uniquement sur le health-service** pour tester tous les services par ruissellement :
+Le script génère une **charge modérée** sur le health-service pour tester tous les services par cascade :
 
 | Scénario | Ville | Taux | Appels/60s |
 |----------|-------|------|------------|
-| Paris | Paris | 0.15 req/s | 9 |
-| Lyon | Lyon | 0.10 req/s | 6 |
-| Marseille | Marseille | 0.05 req/s | 3 |
-| **TOTAL** | - | **0.3 req/s** | **18** |
+| Paris | Paris | 1.67 req/s | 100 |
+| Lyon | Lyon | 1.25 req/s | 75 |
+| Marseille | Marseille | 0.67 req/s | 40 |
+| Toulouse | Toulouse | 0.42 req/s | 25 |
+| Nice | Nice | 0.17 req/s | 10 |
+| **TOTAL** | - | **4.18 req/s** | **250** |
 
-### Calcul des Quotas
+### Impact Total par Test (60s)
+- **250 appels** au health-service
+- **250 appels** au weather-service
+- **250 appels** à l'air-quality-service
+- **750 appels** au total sur l'infrastructure
 
-**Par exécution (60s)** :
-- 18 appels au health-service
-- → 18 appels à OpenWeather
-- → 18 appels à OpenAQ
-
-**Lancements possibles par jour** :
-- OpenWeather : 1000 ÷ 18 = **~55 exécutions/jour**
-- OpenAQ : 2000 ÷ 18 = **~111 exécutions/jour**
-
-**Quota limitant** : OpenWeather avec ~55 lancements maximum par jour
+Cette charge modérée permet de **tester l'observabilité** sans saturer les services, tout en générant suffisamment de métriques et de traces pour analyser le comportement du système.
 
 ## 🚀 Utilisation
 
@@ -62,17 +61,17 @@ Le test k6 mesure automatiquement :
 
 ### Modifier la Charge
 
-Éditez `scripts/load-test.js` et ajustez les paramètres :
+Éditez `scripts/load-test.js` et ajustez les paramètres. Vous pouvez maintenant augmenter librement la charge :
 
 ```javascript
 health_paris: {
   executor: 'constant-arrival-rate',
   exec: 'healthParis',
-  rate: 9,        // Nombre de requêtes par minute
+  rate: 60,       // Nombre de requêtes par minute (1 req/s)
   timeUnit: '1m', // Unité de temps
   duration: '60s', // Durée du test
-  preAllocatedVUs: 1,
-  maxVUs: 3,
+  preAllocatedVUs: 2,
+  maxVUs: 10,
 }
 ```
 
@@ -98,76 +97,67 @@ export function healthBordeaux() {
 health_bordeaux: {
   executor: 'constant-arrival-rate',
   exec: 'healthBordeaux',
-  rate: 3,
+  rate: 30,  // Pas de limite, ajustez selon vos besoins
   timeUnit: '1m',
   duration: '60s',
   preAllocatedVUs: 1,
-  maxVUs: 2,
+  maxVUs: 5,
 }
 ```
 
-⚠️ **Attention** : Ajustez les taux pour rester sous les quotas !
+### Augmenter la Charge pour Tests de Performance
 
-### Augmenter la Charge
+Vous pouvez maintenant tester les limites de votre infrastructure :
 
-Si vous avez un plan payant avec des quotas plus élevés :
-
-1. Calculez votre quota disponible
-2. Divisez par le nombre d'exécutions souhaitées par jour
-3. Ajustez les `rate` en conséquence
-
-**Exemple** : Quota OpenWeather de 10,000/jour
-- Pour 50 exécutions/jour : 10,000 ÷ 50 = 200 appels par test
-- Durée 60s : 200 ÷ 60 = 3.33 req/s
-- Ajustez : `rate: 200` avec `timeUnit: '1m'`
+**Charge faible** : 1-5 req/s (monitoring basique)
+**Charge moyenne** : 5-20 req/s (test de stabilité)
+**Charge élevée** : 20-100 req/s (test de performance)
+**Stress test** : 100+ req/s (identifier les limites)
 
 ## 📊 Résultats Typiques
 
 Après l'exécution, k6 affiche :
 
 ```
-scenarios: (100.00%) 3 scenarios, 8 max VUs, 1m30s max duration
-  * health_paris: 0.15 iterations/s for 1m0s
-  * health_lyon: 0.10 iterations/s for 1m0s
-  * health_marseille: 0.05 iterations/s for 1m0s
+scenarios: (100.00%) 5 scenarios, 30 max VUs, 1m30s max duration
+  * health_paris: 1.0 iterations/s for 1m0s
+  * health_lyon: 0.8 iterations/s for 1m0s
+  * health_marseille: 0.5 iterations/s for 1m0s
+  * health_toulouse: 0.4 iterations/s for 1m0s
+  * health_nice: 0.3 iterations/s for 1m0s
 
 ✓ status is 200
 ✓ response time < 5s
 
-checks.........................: 100.00% ✓ 18  ✗ 0
-data_received..................: 45 kB   750 B/s
-data_sent......................: 2.1 kB  35 B/s
-http_req_duration..............: avg=1.2s  min=450ms med=1.1s max=2.3s p(95)=2.1s
-http_reqs......................: 18      0.3/s
+checks.........................: 100.00% ✓ 180  ✗ 0
+data_received..................: 450 kB  7.5 kB/s
+data_sent......................: 21 kB   350 B/s
+http_req_duration..............: avg=0.8s  min=200ms med=0.7s max=1.8s p(95)=1.5s
+http_reqs......................: 180     3.0/s
 ```
 
 ## 🎯 Bonnes Pratiques
 
 ### Pendant la Formation
 
-1. **Avant chaque session** : Vérifiez vos quotas restants
-2. **Entre les tests** : Attendez quelques minutes pour étaler la charge
-3. **Surveillance** : Observez les métriques dans Grafana pendant le test
-4. **Documentation** : Notez combien de fois vous avez lancé le test
+1. **Lancez autant de tests que nécessaire** : Plus de quotas à gérer !
+2. **Surveillance** : Observez les métriques dans Grafana pendant le test
+3. **Expérimentation** : Augmentez progressivement la charge pour trouver les limites
+4. **Comparaison** : Lancez plusieurs tests pour comparer les performances
 
-### Gestion des Quotas
+### Optimisation des Tests
 
 ```bash
-# Comptez vos exécutions de la journée
-echo "Exécutions aujourd'hui: X/55"
+# Lancez des tests successifs pour observer l'évolution
+make test-load
+sleep 10
+make test-load
 
-# Si vous approchez de la limite, réduisez la durée
-# Éditez load-test.js et changez duration: '60s' → '30s'
+# Observez l'impact dans Grafana
+# http://localhost:3000
 ```
 
 ## 🐛 Troubleshooting
-
-### Erreur 429 (Too Many Requests)
-
-Vous avez atteint votre quota API :
-- Attendez la réinitialisation (minuit UTC pour OpenWeather)
-- Vérifiez votre dashboard API
-- Réduisez temporairement la charge
 
 ### Tests qui échouent
 

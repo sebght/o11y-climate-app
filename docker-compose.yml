@@ -27,7 +27,6 @@ services:
     environment:
       - SPRING_APPLICATION_NAME=air-quality-service
       - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus
-      - OPENAQ_API_KEY=${OPENAQ_API_KEY}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
       - OTEL_SERVICE_NAME=air-quality-service
       - OTEL_METRICS_EXPORTER=none
@@ -51,7 +50,6 @@ services:
       - "8081:8081"
     environment:
       - PORT=8081
-      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-demo}
       - OTEL_EXPORTER_OTLP_ENDPOINT=tempo:4317
       - OTEL_SERVICE_NAME=weather-service
     networks:

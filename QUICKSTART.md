@@ -5,24 +5,12 @@ Guide de démarrage en 5 minutes pour la plateforme de qualité de l'air.
 ## Prérequis
 
 - Docker ou Podman installé
-- (Optionnel) Clé API OpenWeatherMap gratuite
 
-## Installation en 3 étapes
+**Note:** Les services utilisent des **données fictives générées localement**. Aucune clé API n'est nécessaire.
 
-### 1. Configuration
+## Installation en 2 étapes
 
-```bash
-# Cloner ou accéder au projet
-cd o11y-bpi-france
-
-# Créer le fichier de configuration
-cp .env.example .env
-
-# (Optionnel) Éditer .env et ajouter votre clé API OpenWeatherMap
-# nano .env
-```
-
-### 2. Démarrage
+### 1. Démarrage
 
 ```bash
 # Lancer tous les services
@@ -32,7 +20,7 @@ docker-compose up -d
 make start
 ```
 
-### 3. Vérification
+### 2. Vérification
 
 ```bash
 # Attendre 30-60 secondes pour le démarrage du service Spring Boot
