@@ -33,6 +33,7 @@ services:
       - OTEL_LOGS_EXPORTER=none
     networks:
       - app-network
+      - monitoring
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -54,6 +55,7 @@ services:
       - OTEL_SERVICE_NAME=weather-service
     networks:
       - app-network
+      - monitoring
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/health"]
       interval: 30s
@@ -76,6 +78,7 @@ services:
       - OTEL_SERVICE_NAME=health-service
     networks:
       - app-network
+      - monitoring
     depends_on:
       - air-quality-service
       - weather-service
